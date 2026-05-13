@@ -10,9 +10,14 @@ It gives you a club, a story hook, a house rule, and a proper self-imposed chall
 - Uses live ESPN-backed club data where available, including actual crests for major clubs.
 - Includes generated crest fallbacks for leagues where no open crest source is available.
 - Offers 20 versatile career mode challenge formats, such as Academy Only, Moneyball Ledger, Athletic Policy, Wage Cap, and Release Clause Chaos.
+- Adds a create-a-club mode with random or custom club names, 20 mascot identities with icons, club colours, and kit colours.
+- Includes 30 kit palette presets plus custom home, away, and third kit colour controls.
+- Generates extra club identity details like motto, culture, country, league tier, stadium, academy focus, board style, rivalry hook, and fan ritual.
+- Lets a created club become a full career mode brief using the same save rules and challenge system.
 - Stores every generated career in browser history.
+- Stores generated and saved created-club blueprints in browser history.
 - Lets you pin promising career ideas as saved briefs.
-- Persists filters, difficulty, current career, selected challenge, pinned saves, and history in the browser.
+- Persists filters, difficulty, current career, selected challenge, pinned saves, created clubs, and history in the browser.
 - Asks for confirmation before rerolling so you do not lose a good setup by mistake.
 - Installs as a PWA on supported mobile browsers.
 

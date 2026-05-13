@@ -27,6 +27,13 @@ import {
   transferRules,
   type Challenge
 } from "@/src/data/challenges";
+import { CreateClubStudio } from "@/src/components/CreateClubStudio";
+import {
+  createRandomClubBlueprint,
+  normalizeCreatedClub,
+  normalizeCreatedClubList,
+  type CreatedClub
+} from "@/src/data/club-creator";
 
 type Club = {
   id: string;
@@ -103,7 +110,7 @@ type CareerPlan = {
   challenge: Challenge;
 };
 
-const tabs = ["Start", "Clubs", "Challenges", "History"] as const;
+const tabs = ["Start", "Create", "Clubs", "Rules", "History"] as const;
 type Tab = (typeof tabs)[number];
 
 const difficultyProfiles = ["Balanced", "Underdog", "Chaos"] as const;
@@ -131,6 +138,8 @@ type BrowserMemory = {
   drawnChallengeId: string;
   savedCareers: CareerPlan[];
   careerHistory: CareerPlan[];
+  createdClub: CreatedClub | null;
+  createdClubHistory: CreatedClub[];
 };
 
 function randomIndex(length: number) {
@@ -166,6 +175,14 @@ function createCareerPlan(club: Club, difficulty: Difficulty): CareerPlan {
 
 function isTab(value: unknown): value is Tab {
   return typeof value === "string" && tabs.includes(value as Tab);
+}
+
+function normalizeTab(value: unknown): Tab {
+  if (value === "Challenges") {
+    return "Rules";
+  }
+
+  return isTab(value) ? value : "Start";
 }
 
 function isDifficulty(value: unknown): value is Difficulty {
@@ -248,6 +265,48 @@ function getMonogram(name: string) {
     .toUpperCase();
 }
 
+function makeAbbreviation(name: string) {
+  const letters = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((word) => word.replace(/[^a-z0-9]/gi, "")[0])
+    .join("")
+    .toUpperCase();
+
+  return letters || "CC";
+}
+
+function stampCreatedClub(club: CreatedClub): CreatedClub {
+  return {
+    ...club,
+    id: `created-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    createdAt: Date.now()
+  };
+}
+
+function getCreatedClubSignature(club: CreatedClub) {
+  return [
+    club.name,
+    club.country,
+    club.leagueTier,
+    club.mascotId,
+    club.motto,
+    club.mainColors.primary,
+    club.mainColors.secondary,
+    club.homeKitMode,
+    club.homeKit.primary,
+    club.homeKit.secondary,
+    club.homeKit.trim,
+    club.awayKit.primary,
+    club.awayKit.secondary,
+    club.awayKit.trim,
+    club.thirdKit.primary,
+    club.thirdKit.secondary,
+    club.thirdKit.trim
+  ].join("|");
+}
+
 function Crest({ club, size = "md" }: { club: Club; size?: "sm" | "md" | "lg" }) {
   const [failed, setFailed] = useState(false);
   const sizeClass = size === "lg" ? "h-24 w-24" : size === "sm" ? "h-10 w-10" : "h-14 w-14";
@@ -315,6 +374,8 @@ export default function CareerApp() {
   const [drawnChallenge, setDrawnChallenge] = useState<Challenge>(challengeDeck[0]);
   const [savedCareers, setSavedCareers] = useState<CareerPlan[]>([]);
   const [careerHistory, setCareerHistory] = useState<CareerPlan[]>([]);
+  const [createdClub, setCreatedClub] = useState<CreatedClub>(() => createRandomClubBlueprint());
+  const [createdClubHistory, setCreatedClubHistory] = useState<CreatedClub[]>([]);
   const [memoryReady, setMemoryReady] = useState(false);
   const [pendingReroll, setPendingReroll] = useState(false);
 
@@ -347,6 +408,13 @@ export default function CareerApp() {
         const restoredCareer = normalizeCareerPlan(memory?.currentCareer);
         const restoredSavedCareers = normalizeCareerList(memory?.savedCareers);
         const restoredHistory = normalizeCareerList(memory?.careerHistory);
+        const restoredCreatedClub = normalizeCreatedClub(memory?.createdClub);
+        const restoredCreatedClubHistory = normalizeCreatedClubList(memory?.createdClubHistory).filter((club) =>
+          countryNames.includes(club.country)
+        );
+        const initialCreatedClub = restoredCreatedClub && countryNames.includes(restoredCreatedClub.country)
+          ? restoredCreatedClub
+          : createRandomClubBlueprint(countryNames);
         const initialCareer = restoredCareer ?? createCareerPlan(data.clubs[randomIndex(data.clubs.length)], restoredDifficulty);
         const initialHistory = restoredHistory.length
           ? restoredCareer
@@ -359,11 +427,13 @@ export default function CareerApp() {
         setSelectedTiers(restoredTiers.length ? restoredTiers : [1, 2, 3]);
         setDifficulty(restoredDifficulty);
         setQuery(typeof memory?.query === "string" ? memory.query : "");
-        setActiveTab(isTab(memory?.activeTab) ? memory.activeTab : "Start");
+        setActiveTab(normalizeTab(memory?.activeTab));
         setCareer(initialCareer);
         setDrawnChallenge(normalizeChallenge(memory?.drawnChallengeId));
         setSavedCareers(restoredSavedCareers);
         setCareerHistory(initialHistory);
+        setCreatedClub(initialCreatedClub);
+        setCreatedClubHistory(restoredCreatedClubHistory);
         setMemoryReady(true);
       } catch (loadError) {
         if (!mounted) return;
@@ -396,9 +466,24 @@ export default function CareerApp() {
       currentCareer: career,
       drawnChallengeId: drawnChallenge.id,
       savedCareers,
-      careerHistory
+      careerHistory,
+      createdClub,
+      createdClubHistory
     });
-  }, [activeTab, career, careerHistory, difficulty, drawnChallenge.id, memoryReady, query, savedCareers, selectedCountries, selectedTiers]);
+  }, [
+    activeTab,
+    career,
+    careerHistory,
+    createdClub,
+    createdClubHistory,
+    difficulty,
+    drawnChallenge.id,
+    memoryReady,
+    query,
+    savedCareers,
+    selectedCountries,
+    selectedTiers
+  ]);
 
   const countries = payload?.countries ?? [];
   const allClubs = payload?.clubs ?? [];
@@ -496,6 +581,52 @@ export default function CareerApp() {
     setSavedCareers((current) => current.filter((careerItem) => careerItem.id !== id));
   }
 
+  function recordCreatedClub(blueprint: CreatedClub) {
+    const signature = getCreatedClubSignature(blueprint);
+    setCreatedClubHistory((current) =>
+      [blueprint, ...current.filter((item) => item.id !== blueprint.id && getCreatedClubSignature(item) !== signature)].slice(0, 30)
+    );
+  }
+
+  function createClubFromBlueprint(blueprint: CreatedClub): Club {
+    const country = countries.find((item) => item.country === blueprint.country);
+    const regionClub = allClubs.find((item) => item.country === blueprint.country);
+
+    return {
+      id: `custom-${blueprint.id}`,
+      name: blueprint.name,
+      shortName: blueprint.name,
+      abbreviation: makeAbbreviation(blueprint.name),
+      country: blueprint.country,
+      countryCode: country?.countryCode ?? makeAbbreviation(blueprint.country),
+      region: regionClub?.region ?? "Europe",
+      league: `Create-a-club Tier ${blueprint.leagueTier}`,
+      leagueId: `custom-${blueprint.country.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${blueprint.leagueTier}`,
+      tier: blueprint.leagueTier,
+      crestUrl: null,
+      crestKind: "generated",
+      primaryColor: blueprint.mainColors.primary,
+      alternateColor: blueprint.mainColors.secondary,
+      source: "manual",
+      isMajor: false,
+      tags: [blueprint.culture, blueprint.academyFocus, blueprint.motto]
+    };
+  }
+
+  function saveCreatedClubSnapshot() {
+    const snapshot = stampCreatedClub(createdClub);
+    setCreatedClub(snapshot);
+    recordCreatedClub(snapshot);
+  }
+
+  function startCreatedClubCareer(blueprint = createdClub) {
+    const snapshot = stampCreatedClub(blueprint);
+    setCreatedClub(snapshot);
+    recordCreatedClub(snapshot);
+    commitCareerPlan(createCareerPlan(createClubFromBlueprint(snapshot), difficulty));
+    setActiveTab("Start");
+  }
+
   const crestCoverage = payload?.totals.actualCrests ?? 0;
 
   return (
@@ -558,6 +689,14 @@ export default function CareerApp() {
               >
                 Browse clubs
                 <Binoculars size={18} weight="bold" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("Create")}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-6 text-sm font-semibold text-[var(--ink)] transition hover:-translate-y-0.5 active:scale-[0.98]"
+              >
+                Create club
+                <ShieldCheck size={18} weight="bold" />
               </button>
             </div>
           </div>
@@ -822,6 +961,18 @@ export default function CareerApp() {
               </>
             )}
 
+            {activeTab === "Create" && (
+              <CreateClubStudio
+                countries={countries.map((country) => country.country)}
+                club={createdClub}
+                recentClubs={createdClubHistory}
+                setClub={setCreatedClub}
+                onGenerate={recordCreatedClub}
+                onSaveSnapshot={saveCreatedClubSnapshot}
+                onStartCareer={() => startCreatedClubCareer()}
+              />
+            )}
+
             {activeTab === "Clubs" && (
               <section className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface)] p-5">
                 <div className="grid gap-5">
@@ -895,7 +1046,7 @@ export default function CareerApp() {
               </section>
             )}
 
-            {activeTab === "Challenges" && (
+            {activeTab === "Rules" && (
               <section className="rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface)] p-5">
                 <div className="grid gap-5">
                   <div>
@@ -1013,6 +1164,68 @@ export default function CareerApp() {
                         <h3 className="mt-3 text-2xl font-black tracking-tight">No saved briefs yet</h3>
                         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                           Tap Save brief on a setup when it feels like a contender.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-8 flex items-center justify-between border-t border-[var(--border)] pt-5">
+                  <h3 className="text-xl font-black tracking-tight">Created clubs</h3>
+                  <span className="font-mono text-xs text-[var(--muted)]">{createdClubHistory.length}</span>
+                </div>
+
+                <div className="mt-3 grid gap-3">
+                  {createdClubHistory.length ? (
+                    createdClubHistory.map((item) => (
+                      <article key={item.id} className="rounded-[1.25rem] border border-[var(--border)] bg-[var(--background)] p-4">
+                        <div className="flex items-start gap-3">
+                          <span
+                            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-black text-white"
+                            style={
+                              {
+                                background: `linear-gradient(135deg, ${item.mainColors.primary}, ${item.mainColors.secondary})`
+                              } as CSSProperties
+                            }
+                          >
+                            {getMonogram(item.name)}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+                              {item.country} / Tier {item.leagueTier}
+                            </p>
+                            <h3 className="mt-1 truncate text-lg font-black tracking-tight">{item.name}</h3>
+                            <p className="mt-1 line-clamp-2 text-sm leading-6 text-[var(--muted)]">{item.motto}</p>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreatedClub(item);
+                              setActiveTab("Create");
+                            }}
+                            className="min-h-11 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-black text-[var(--ink)] transition active:scale-[0.96]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startCreatedClubCareer(item)}
+                            className="min-h-11 rounded-full bg-[var(--ink)] px-4 text-sm font-black text-[var(--surface)] transition active:scale-[0.96]"
+                          >
+                            Career
+                          </button>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="grid place-items-center rounded-[1.5rem] border border-dashed border-[var(--border)] bg-[var(--background)] text-center">
+                      <div className="max-w-sm p-5">
+                        <ShieldCheck size={34} weight="duotone" className="mx-auto text-[var(--accent)]" />
+                        <h3 className="mt-3 text-2xl font-black tracking-tight">No created clubs yet</h3>
+                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                          Generate or save a create-a-club design to keep it here.
                         </p>
                       </div>
                     </div>
@@ -1150,7 +1363,7 @@ export default function CareerApp() {
           </div>
         </div>
       ) : null}
-      <nav className="fixed bottom-3 left-1/2 z-30 grid w-[calc(100%-1.5rem)] max-w-[398px] -translate-x-1/2 grid-cols-4 rounded-full border border-[color-mix(in_oklch,var(--border)_80%,transparent)] bg-[color-mix(in_oklch,var(--surface)_92%,transparent)] p-1 shadow-[0_18px_50px_-28px_rgba(18,16,14,0.7)] backdrop-blur-xl">
+      <nav className="fixed bottom-3 left-1/2 z-30 grid w-[calc(100%-1.5rem)] max-w-[398px] -translate-x-1/2 grid-cols-5 rounded-full border border-[color-mix(in_oklch,var(--border)_80%,transparent)] bg-[color-mix(in_oklch,var(--surface)_92%,transparent)] p-1 shadow-[0_18px_50px_-28px_rgba(18,16,14,0.7)] backdrop-blur-xl">
         {tabs.map((tab) => (
           <button
             key={tab}
