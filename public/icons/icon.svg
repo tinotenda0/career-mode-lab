@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Career Mode Lab icon">
+  <rect width="512" height="512" rx="116" fill="#181511"/>
+  <circle cx="256" cy="256" r="170" fill="#c84036"/>
+  <circle cx="256" cy="256" r="142" fill="#f4f1ec"/>
+  <path fill="#181511" d="M256 117 377 187v138L256 395 135 325V187l121-70Zm0 42-84 49v96l84 49 84-49v-96l-84-49Z"/>
+  <path fill="#c84036" d="M256 199 305 228v56l-49 29-49-29v-56l49-29Zm0 37-17 10v20l17 10 17-10v-20l-17-10Z"/>
+</svg>

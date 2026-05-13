@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="Career Mode Lab apple touch icon">
+  <rect width="180" height="180" rx="40" fill="#181511"/>
+  <circle cx="90" cy="90" r="60" fill="#c84036"/>
+  <circle cx="90" cy="90" r="50" fill="#f4f1ec"/>
+  <path fill="#181511" d="m90 42 43 25v48l-43 25-43-25V67l43-25Zm0 18-28 16v30l28 16 28-16V76L90 60Z"/>
+  <path fill="#c84036" d="m90 73 17 10v14l-17 10-17-10V83l17-10Z"/>
+</svg>
