@@ -8,7 +8,8 @@ import {
   type LeagueSource
 } from "@/src/data/league-sources";
 
-export const revalidate = 86400;
+// Static export: the club list is fetched from ESPN once per build.
+export const dynamic = "force-static";
 
 type EspnLogo = {
   href?: string;
@@ -164,9 +165,6 @@ async function fetchEspnClubs(source: LeagueSource) {
   const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${source.espnCode}/teams`, {
     headers: {
       accept: "application/json"
-    },
-    next: {
-      revalidate: 86400
     }
   });
 

@@ -1,0 +1,3 @@
+# The club list is an extensionless static file; serve it as JSON.
+/api/clubs
+  Content-Type: application/json
